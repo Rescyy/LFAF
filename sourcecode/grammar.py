@@ -1,4 +1,4 @@
-import random as r
+from random import choice
 
 def index_return(list,a):
     temp = []
@@ -33,7 +33,7 @@ class Grammar:
                 switch = 0
                 for i in self.non_terminal_chars:
                     if i in iterated_string:
-                        choice_index = r.choice(index_return(self.transition_set,i))
+                        choice_index = choice(index_return(self.transition_set,i))
                         iterated_string = iterated_string.replace(i, self.transition_set[choice_index][1])
                         switch = 1
             return iterated_string
@@ -88,7 +88,7 @@ class Grammar:
                 elif count:
                     types[2] = 1
 
-        for i in range(len(types)):
+        for i in range(4):
             if i == 3 and right:
                 return (3,'right')
             if i == 3 and left:

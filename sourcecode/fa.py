@@ -1,5 +1,5 @@
 from networkx import DiGraph, circular_layout, kamada_kawai_layout, draw, draw_networkx_edge_labels, planar_layout, spectral_layout
-from matplotlib.pyplot import figure
+import matplotlib.pyplot as plt
 
 def index_return(a,b,list):
     for i in range(len(list)):
@@ -7,7 +7,7 @@ def index_return(a,b,list):
             return i
     return -1
 
-class Finiteautomaton:
+class FiniteAutomaton:
 
     def __init__(self, Q, sigma, delta_function, q0, F):
 
@@ -34,18 +34,15 @@ class Finiteautomaton:
     def contains(self,string):
 
         if self.is_deterministic():
-            if type(string) == list:
-                return []
-            else:
-                current_state = self.initial_state
-                for i in string:
-                    a = index_return(current_state, i, self.delta_function)
-                    if a == -1:
-                        return False
-                    current_state = self.delta_function[a][2]
-                if current_state == self.final_states:  
-                    return True
-                return False
+            current_state = self.initial_state
+            for i in string:
+                a = index_return(current_state, i, self.delta_function)
+                if a == -1:
+                    return False
+                current_state = self.delta_function[a][2]
+            if current_state == self.final_states:  
+                return True
+            return False
         else:
             print("This is a nondeterministic finite automaton.\nPlease convert it to a deterministic finite automaton first.")
             return -1
@@ -66,7 +63,12 @@ class Finiteautomaton:
 
     def prepare_graph(self,fig):
 
-        figure(fig)
+        f = plt.figure(fig)
+        color_legend = {'Start State': 'b', 'Final State': 'r'}
+        ax = f.add_subplot(1,1,1)
+        for label in color_legend:
+            ax.plot([0],[0],color = color_legend[label],label=label)
+
         G = DiGraph()
         node_sizes = list()
         node_colors = list()
@@ -88,6 +90,7 @@ class Finiteautomaton:
                     node_colors.append('b')
                 else:
                     node_colors.append('w')
+
         edge_labels = dict()
         for init_state, char, result_state in self.delta_function:
             source_state = str(init_state).replace('[', '{').replace(']', '}').replace('\'','').replace('\"','')
@@ -97,8 +100,8 @@ class Finiteautomaton:
                 edge_labels[source_state, destination_state] += ',' + char
             else:
                 edge_labels[source_state, destination_state] = char
-        #pos = kamada_kawai_layout(G)
-        #pos = planar_layout(G)
+
         pos = circular_layout(G)
         draw(G, pos, node_color = node_colors, edgecolors = 'k', width = 2.0, with_labels = True, node_size = node_sizes)
         draw_networkx_edge_labels(G, pos, edge_labels)
+        plt.legend()

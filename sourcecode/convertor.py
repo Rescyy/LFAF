@@ -1,4 +1,4 @@
-from fa import Finiteautomaton
+from fa import FiniteAutomaton
 from grammar import Grammar
 
 def get_transitions(delta_function, state):
@@ -34,7 +34,7 @@ class Convertor:
             else:
                 delta_function.append([non_terminal, result[0], 'Final'])
 
-        return Finiteautomaton(
+        return FiniteAutomaton(
             grammar.non_terminal_chars + ['Final'],
             grammar.terminal_chars,
             delta_function,
@@ -42,7 +42,7 @@ class Convertor:
             'Final'
         )
     
-    def fa_to_grammar(self, fa: Finiteautomaton):
+    def fa_to_grammar(self, fa: FiniteAutomaton):
 
         newtransition = []
         newnon_terminal = []
@@ -61,10 +61,11 @@ class Convertor:
             newtransition
         )
 
-    def nfa_to_dfa(self, fa: Finiteautomaton):
+    def nfa_to_dfa(self, fa: FiniteAutomaton):
         
         if fa.is_deterministic():
             print("This Finite Automaton is already deterministic")
+            return fa
             
         current_states = [fa.initial_state]
         newtransition = []
@@ -72,12 +73,12 @@ class Convertor:
         newfinal = []
 
         while len(current_states) > 0:
-            temp = get_transitions(fa.delta_function, current_states[0])
+            temp1 = get_transitions(fa.delta_function, current_states[0])
             temp2 = [[current_states[0], i, []] for i in fa.alphabet]
-            for i in temp:
-                for j in temp2:
-                    if i[1] == j[1] and i[2] not in j[2]:
-                        j[2].append(i[2])
+            for __, char1, result_state1 in temp1:
+                for __, char2, result_state2 in temp2:
+                    if char1 == char2 and result_state1 not in result_state2:
+                        result_state2.append(result_state1)
             newstates.append(current_states[0])
             current_states.pop(0)
             for init_state, char, result_state in temp2:
@@ -97,7 +98,7 @@ class Convertor:
                 if fa.final_states in state:
                     newfinal.append(state)
 
-        return Finiteautomaton(
+        return FiniteAutomaton(
             newstates,
             fa.alphabet,
             newtransition,
