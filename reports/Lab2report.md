@@ -63,7 +63,7 @@ Finite Automata can be deterministic or non-deterministic. If from a state, usin
 
 ## Implementation description
 
-* Grammar Format:
+* Grammar Format
 
 ```
 Vn = ['S', 'B', 'D', 'Q']
@@ -80,7 +80,7 @@ P = [
 grammar = Grammar(Vn, Vt, P)
 ```
 
-* Chomsky type identifier implementation:
+* Chomsky type identifier implementation
 
 ```
 types = 4*[0]
@@ -143,7 +143,7 @@ for i in self.terminal_chars:
 return no
 ```
 
-* Finite Automaton Format:
+* Finite Automaton Format
 
 ```
 Q = ['q0', 'q1', 'q2', 'q3', 'q4']
@@ -328,11 +328,27 @@ Prepares the graph of the fa using the networkx and matplotlip python library.
 
 ## Results
 
-```
-Task 2
-Chomsky Type of Grammar is: (3, 'left')
+__Task 2__
 
-Task 3
+```
+Regular Grammar:
+    Vn = ['S', 'B', 'D', 'Q']
+    Vt = ['a', 'b', 'c', 'd']
+    P = 
+    ['S', 'aB']
+    ['S', 'bB']
+    ['B', 'cD']
+    ['D', 'dQ']
+    ['Q', 'bB']
+    ['D', 'a']
+    ['Q', 'dQ']
+
+Chomsky Type of Grammar is: (3, 'left')
+```
+
+__Task 3__
+
+```
 Finite Automaton:
     Q = ['q0', 'q1', 'q2', 'q3', 'q4']
     Sigma = ['a', 'b', 'c']
@@ -377,9 +393,11 @@ This is the result of executing the main.py file
 ## Screenshots
 
 __Graphical Representation of NFA__
+
 ![Graphical Representation of NFA](non_deterministic_fa.png "Graphical Representation of NFA")
 
 __Graphical Representation of DFA__
+
 ![Graphical Representation of DFA](deterministic_fa.png "Graphical Representation of DFA")
 
 ## Conclusions
