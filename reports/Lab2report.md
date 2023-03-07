@@ -2,6 +2,7 @@
 
 ### Course: Formal Languages & Finite Automata
 ### Author: Crucerescu Vladislav
+### Variant: 9
 
 ----
 
@@ -375,8 +376,10 @@ This is the result of executing the main.py file
 
 ## Screenshots
 
+__Graphical Representation of NFA__
 ![Graphical Representation of NFA](non_deterministic_fa.png "Graphical Representation of NFA")
 
+__Graphical Representation of DFA__
 ![Graphical Representation of DFA](deterministic_fa.png "Graphical Representation of DFA")
 
 ## Conclusions
