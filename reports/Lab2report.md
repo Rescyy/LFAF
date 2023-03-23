@@ -49,6 +49,7 @@ Finite Automata can be deterministic or non-deterministic. If from a state, usin
 ## Implementation description
 
 __Chomsky Type Identifier__
+
 For the chomsky type identification, we can consider every transition in the transition set as its own grammar. Below is the "truth table" that we will change as we check more transitions.
 
 ```
@@ -120,6 +121,7 @@ for i in self.terminal_chars:
 ```
 
 __FA to Grammar Convertor__
+
 The following method uses a for loop that iterates through the delta function of the FA and adds the transitions in the transition set under the grammar format. For the delta where the result state is in the final states, the transition will have a result string made only out of the character from the respective delta. During the loop, it is checked whether the FA state is not in the new non-terminal set, if so, it is added.
 
 ```
@@ -133,6 +135,7 @@ for init_state, char, result_state in fa.delta_function:
 ```
 
 __FA Determinism Identifier__
+
 The method below uses double for loops iterating over the delta function counting the amount of similar initial states and characters. If the count is larger than the amount of transitions in the delta function, then the FA is non-deterministic.
 
 ```
@@ -147,6 +150,7 @@ return True
 ```
 
 __NFA to DFA convertor__
+
 The following method uses a while loop checking if there are items in the current states list. This algorithm requires two helping temporary lists. The first temporary list gathers all the transitions from the delta that have the initial state as the current state, or if the initial states are a component of the current state. The second temporary list is a list of all possible transitions made out of the current state and the alphabet of the NFA, note that the result states are currently empty.
 ```
 current_states = [fa.initial_state]
