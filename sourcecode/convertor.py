@@ -73,14 +73,14 @@ class Convertor:
         newfinal = []
 
         while len(current_states) > 0:
-            temp1 = get_transitions(fa.delta_function, current_states[0])
-            temp2 = [[current_states[0], i, []] for i in fa.alphabet]
+            current_state = current_states.pop(0)
+            temp1 = get_transitions(fa.delta_function, current_state)
+            temp2 = [[current_state, i, []] for i in fa.alphabet]
             for __, char1, result_state1 in temp1:
                 for __, char2, result_state2 in temp2:
                     if char1 == char2 and result_state1 not in result_state2:
                         result_state2.append(result_state1)
-            newstates.append(current_states[0])
-            current_states.pop(0)
+            newstates.append(current_state)
             for init_state, char, result_state in temp2:
                 if len(result_state) != 0:
                     reduced_final_state = reduce_list(result_state)

@@ -20,8 +20,6 @@ P = [
     ['Q', 'dQ']
 ]
 grammar = Grammar(Vn, Vt, P)
-
-print("Task 2\n")
 print(grammar)
 print(f"Chomsky Type of Grammar is: {grammar.chomsky_type()}\n")
 
@@ -40,8 +38,6 @@ F = 'q4'
 fa = FiniteAutomaton(Q, sigma, delta, q0, F)
 
 convert = Convertor()
-print("Task 3\n")
-print(fa)
 print(f"Converted Finite Automaton to {convert.fa_to_grammar(fa)}")
 print(f"This Finite Automaton is deterministic: {fa.is_deterministic()}\n")
 dfa = convert.nfa_to_dfa(fa)

@@ -8,34 +8,19 @@
 
 ## Theory
 
-There are two key concepts that had to be studied for this laboratory work: regular grammar and finite automata. These concepts are strongly related to each other, they both can produce the same thing, and they can be derived one from another.
+Finite Automata and Regular Grammars are two strongly related concepts. They can be converted from one to another. 
+There are 4 types of grammars, called Chomsky Types, which describe the limitations they have:
 
-The Regular Grammar is defined as follows:
-
-Let: 
-V_N be the set of non-terminal symbols
-V_T be the set of terminal symbols
-P be the set of production rules
-
-Grammar by definition can have different Chomsky Types, there being 4 types labeled as 0,1,2 and 3.
-Type 0:
+__Type 0__
 Any form of string conversion.
-Type 1:
-Conditional string conversion, can't convert to empty string.
-Type 2:
-Has to have one non-terminal char in the condition string, can convert in any type of string.
-Type 3:
-Can convert in only the strings of form T,TN or T,NT, where T is in V_T and N is in V_N. 
+__Type 1__
+The condition string can have more than one character. Can't convert to empty string.
+__Type 2__
+The condition string has only one non-terminal character. Can convert into any configuration of strings made from non-terminals and terminals.
+__Type 3__
+The condition string has only one non-terminal character. Can convert to strings of form T, TN or T, NT, where T are terminals and N are non-terminals.
 
-The Finite Automaton is defined as follows:
-
-Let:
-Q be the set of all possible states
-Σ be the alphabet
-δ be the transition function
-q0 be the initial state
-F be the set of final states
-
+Only a grammar of type 3 can be converted to a Finite Automaton and vice-versa.
 Finite Automata can be deterministic or non-deterministic. If from a state, using one character, we can transition to two or more different states, then the finite automaton is regarded as non-deterministic. It is possible to convert a non-deterministic finite automaton to a deterministic through the use of an algorithm.
 
 ## Objectives:
@@ -63,7 +48,175 @@ Finite Automata can be deterministic or non-deterministic. If from a state, usin
 
 ## Implementation description
 
-* Grammar Format
+__Chomsky Type Identifier__
+For the chomsky type identification, we can consider every transition in the transition set as its own grammar. Below is the "truth table" that we will change as we check more transitions.
+
+```
+types = [0, 0, 0, 1]
+left = 0
+right = 0
+```
+
+Below, I identify the chomsky type for each transition.
+
+Type 0 - the condition string is not in the non-terminals, meaning it has more than one element and the number of elements in the result string is larger than the number of elements in the condition string.
+Type 1 - the condition string is not in the non-terminals.
+
+```
+no_condition = self.no_elements(condition)
+no_result = self.no_elements(result)
+if condition not in self.non_terminal_chars:
+    if no_result < no_condition:
+        return 0
+    types[1] = 1
+```
+
+Type 2 - the number of non-terminals in the result string is larger than one or the terminals are situated both on the right and left side of the one non-terminal.
+Type 3 - only a non-terminal in the condition and result string. The terminal characters must be all on one side of the non-terminal, left or right.
+
+```
+count = 0
+for i in self.non_terminal_chars:
+    if i in result:
+        count += 1
+        non_terminal_in_result = i
+if count > 1:
+    types[2] = 1
+elif count and no_result > no_condition:
+    pos = result.find(non_terminal_in_result)
+    if pos == len_result - len(non_terminal_in_result):
+        left = 1
+    elif pos == 0:
+        right = 1
+    else:
+        types[2] = 1
+    if left and right:
+        types[2] = 1
+elif count:
+    types[2] = 1
+```
+
+Out of all the chomsky types of the transitions, the "lowest" is chosen. If for example only one transition has a chomsky type of 0, then the whole grammar is type 0.
+
+```
+for i in range(4):
+    if i == 3 and right:
+        return (3,'right')
+    if i == 3 and left:
+        return (3,'left')
+    if types[i]:
+        return i
+```
+
+The no_elements function counts the number of characters in the string, this is needed because a string might have a non-terminal that is several characters long.
+
+```
+no = 0
+for i in self.non_terminal_chars:
+    no += string.count(i)
+    string = string.replace(i, '')
+for i in self.terminal_chars:
+    no += string.count(i)
+```
+
+__FA to Grammar Convertor__
+The following method uses a for loop that iterates through the delta function of the FA and adds the transitions in the transition set under the grammar format. For the delta where the result state is in the final states, the transition will have a result string made only out of the character from the respective delta. During the loop, it is checked whether the FA state is not in the new non-terminal set, if so, it is added.
+
+```
+for init_state, char, result_state in fa.delta_function:
+    if str(result_state) in str(fa.final_states):
+        newtransition.append([str(init_state), char])
+    else:
+        newtransition.append([str(init_state), char + str(result_state)])
+    if str(init_state) not in newnon_terminal:
+        newnon_terminal.append(str(init_state))
+```
+
+__FA Determinism Identifier__
+The method below uses double for loops iterating over the delta function counting the amount of similar initial states and characters. If the count is larger than the amount of transitions in the delta function, then the FA is non-deterministic.
+
+```
+count = 0
+for init_state1, char1, __ in self.delta_function:
+    for init_state2, char2, __ in self.delta_function:
+        if init_state1 == init_state2 and char1 == char2:
+            count += 1
+if count > len(self.delta_function):
+    return False
+return True
+```
+
+__NFA to DFA convertor__
+The following method uses a while loop checking if there are items in the current states list. This algorithm requires two helping temporary lists. The first temporary list gathers all the transitions from the delta that have the initial state as the current state, or if the initial states are a component of the current state. The second temporary list is a list of all possible transitions made out of the current state and the alphabet of the NFA, note that the result states are currently empty.
+```
+current_states = [fa.initial_state]
+while len(current_states) > 0:
+    temp1 = get_transitions(fa.delta_function, current_states[0])
+    temp2 = [[current_states[0], i, []] for i in fa.alphabet]
+```
+
+The next step is to "merge" the lists. By iterating through temp1 and temp2, we check if the characters match, adding the result state from temp1 to the result state of temp2.
+```
+    for __, char1, result_state1 in temp1:
+        for __, char2, result_state2 in temp2:
+            if char1 == char2 and result_state1 not in result_state2:
+                result_state2.append(result_state1)
+```
+
+The next step is to add the evaluated current state to the new states. Then by iterating through the temp2 list, check which result state are not empty and append the whole transition to the new transition set. The result states that are not in the current states and not in the new states are appended to the current states for evaluation. 
+```
+    newstates.append(current_states.pop(0))
+    for init_state, char, result_state in temp2:
+        if len(result_state) != 0:
+            reduced_final_state = reduce_list(result_state)
+            newtransition.append([init_state, char, reduced_final_state])
+            if reduced_final_state not in current_states and reduced_final_state not in newstates: 
+                current_states.append(reduced_final_state)
+```
+
+The last step identifies which of the new states is a final state. A final state may be a list of strings or a string, therefore two methods must be used.
+```
+if type(fa.final_states) == list:
+    for state in newstates:
+        for final in fa.final_states:
+            if final in state:
+                newfinal.append(state)
+else:
+    for state in newstates:
+        if fa.final_states in state:
+            newfinal.append(state)
+```
+
+The get_transitions function takes in the delta function and a current state. By iterating through the delta function and the current state, we find the equivalent delta functions to the current state.s
+```
+if type(state) == list:
+    for component_state in state:
+        for init_state, char, result_state in delta_function:
+            if component_state == init_state:
+                transitions.append([state, char, result_state])
+for init_state, char, result_state in delta_function:
+    if state == init_state:
+        transitions.append([state, char, result_state])
+```
+
+The reduce_list function takes in the list, if the list has only one state, it returns the element, else it returns the whole list.
+
+```
+if len(list) == 1:
+    return list[0]
+else:
+    return list
+```
+
+__Graph representation of the FA__
+
+The method for the graphical representation uses the networkx python library. It does not have an algorithmic implementation, it only adds the nodes, them being the states, and the edges being the delta. The initial and the final states are colored blue and red respectively.
+
+## Results
+
+Executing the following main.py file, we produce:
+
+__Task 2__
 
 ```
 Vn = ['S', 'B', 'D', 'Q']
@@ -78,72 +231,13 @@ P = [
     ['Q', 'dQ']
 ]
 grammar = Grammar(Vn, Vt, P)
+print(f"Chomsky Type of Grammar is: {grammar.chomsky_type()}\n")
+```
+```
+Chomsky Type of Grammar is: (3, 'left')
 ```
 
-* Chomsky type identifier implementation
-
-```
-types = 4*[0]
-types[3] = 1
-left = 0
-right = 0
-
-for condition, result in self.transition_set:
-    len_result = len(result)
-    no_result = self.no_elements(result)
-    no_condition = self.no_elements(condition)
-    if not len_result:
-        return 0
-    if condition not in self.non_terminal_chars:
-        if no_result > no_condition:
-            return 0
-        types[1] = 1
-
-    elif not types[2]:
-        count = 0
-        for i in self.non_terminal_chars:
-            if i in result:
-                count += 1
-                non_terminal_in_result = i
-        if count > 1:
-            types[2] = 1
-        elif count and no_result > no_condition:
-            pos = result.find(non_terminal_in_result)
-            if pos == len_result - len(non_terminal_in_result):
-                left = 1
-            elif pos == 0:
-                right = 1
-            else:
-                types[2] = 1
-            if left and right:
-                types[2] = 1
-        elif count:
-            types[2] = 1
-
-for i in range(4):
-    if i == 3 and right:
-        return (3,'right')
-    if i == 3 and left:
-        return (3,'left')
-    if types[i]:
-        return i
-```
-
-This algorithm identifies the type for each transition, then chooses the "lowest" type. If there are type 3 grammar of left linearity and right linearity, means the overall grammar type is 2.
-
-It uses the self implemented no_elements function that identifies how many terminal and non-terminal elements the string has.
-
-```
-no = 0
-for i in self.non_terminal_chars:
-    no += string.count(i)
-    string.replace(i, '')
-for i in self.terminal_chars:
-    no += string.count(i)
-return no
-```
-
-* Finite Automaton Format
+__Task 3__
 
 ```
 Q = ['q0', 'q1', 'q2', 'q3', 'q4']
@@ -159,209 +253,13 @@ delta = [
 q0 = 'q0'
 F = 'q4'
 fa = FiniteAutomaton(Q, sigma, delta, q0, F)
+convert = Convertor()
+print(f"Converted Finite Automaton to {convert.fa_to_grammar(fa)}")
+print(f"This Finite Automaton is deterministic: {fa.is_deterministic()}\n")
+dfa = convert.nfa_to_dfa(fa)
+print(f"Converted Non-Deterministic Finite Automaton to Deterministic {dfa}")
 ```
-
-* Finite Automaton to Grammar convertor
-
 ```
-newtransition = []
-newnon_terminal = []
-
-for init_state, char, result_state in fa.delta_function:
-    if str(result_state) in str(fa.final_states):
-        newtransition.append([str(init_state), char])
-    else:
-        newtransition.append([str(init_state), char + str(result_state)])
-    if str(init_state) not in newnon_terminal:
-        newnon_terminal.append(str(init_state))
-
-return Grammar(
-    newnon_terminal,
-    fa.alphabet,
-    newtransition
-)
-```
-
-Takes in Finite Automaton Object and returns Grammar Object
-
-* Finite Automaton determinism identifier
-
-```
-if self.determinism:
-    return True
-count = 0
-for init_state1, char1, __ in self.delta_function:
-    for init_state2, char2, __ in self.delta_function:
-        if init_state1 == init_state2 and char1 == char2:
-            count += 1
-if count > len(self.delta_function):
-    return False
-self.determinism = True
-return True
-```
-
-Returns True or False whether if the Finite Automaton is deterministic or not
-
-* NFA to DFA convertor
-
-```
-if fa.is_deterministic():
-    print("This Finite Automaton is already deterministic")
-    return fa
-    
-current_states = [fa.initial_state]
-newtransition = []
-newstates = []
-newfinal = []
-
-while len(current_states) > 0:
-    temp1 = get_transitions(fa.delta_function, current_states[0])
-    temp2 = [[current_states[0], i, []] for i in fa.alphabet]
-    for __, char1, result_state1 in temp1:
-        for __, char2, result_state2 in temp2:
-            if char1 == char2 and result_state1 not in result_state2:
-                result_state2.append(result_state1)
-    newstates.append(current_states[0])
-    current_states.pop(0)
-    for init_state, char, result_state in temp2:
-        if len(result_state) != 0:
-            reduced_final_state = reduce_list(result_state)
-            newtransition.append([init_state, char, reduced_final_state])
-            if reduced_final_state not in current_states and reduced_final_state not in newstates: 
-                current_states.append(reduced_final_state)
-
-if type(fa.final_states) == list:
-    for state in newstates:
-        for final in fa.final_states:
-            if final in state:
-                newfinal.append(state)
-else:
-    for state in newstates:
-        if fa.final_states in state:
-            newfinal.append(state)
-
-return FiniteAutomaton(
-    newstates,
-    fa.alphabet,
-    newtransition,
-    fa.initial_state,
-    reduce_list(newfinal)
-)
-```
-
-Takes in a finite automaton, checks whether it is deterministic, if true, it returns the same finite automaton, else it converts it to a dfa and returns it.
-
-It uses the self implemented get_transitions and reduce_list function.
-
-```
-transitions = []
-if type(state) == list:
-    for component_state in state:
-        for init_state, char, result_state in delta_function:
-            if component_state == init_state:
-                transitions.append([state, char, result_state])
-for init_state, char, result_state in delta_function:
-    if state == init_state:
-        transitions.append([state, char, result_state])
-return transitions
-```
-
-Takes in a state, then returns the delta_function transitions which have same states to the given state.
-
-```
-if len(list) == 1:
-    return list[0]
-else:
-    return list
-```
-
-Takes in a list, if a list has one element, returns the element, if it has more, then returns the list.
-
-* Graph representation of the FA
-
-```
-f = plt.figure(fig)
-color_legend = {'Start State': 'b', 'Final State': 'r'}
-ax = f.add_subplot(1,1,1)
-for label in color_legend:
-    ax.plot([0],[0],color = color_legend[label],label=label)
-
-G = DiGraph()
-node_sizes = list()
-node_colors = list()
-for state in self.all_states:
-    newstate = str(state).replace('[', '{').replace(']', '}').replace('\'','').replace('\"','')
-    G.add_node(newstate)
-    node_sizes.append(100 * (len(newstate)**(1.618033988749894) + 1))
-    if type(self.final_states) == list:
-        if state in self.final_states:
-            node_colors.append('r')
-        elif state == self.initial_state:
-            node_colors.append('b')
-        else:
-            node_colors.append('w')
-    else:
-        if state == self.final_states:
-            node_colors.append('r')
-        elif state == self.initial_state:
-            node_colors.append('b')
-        else:
-            node_colors.append('w')
-
-edge_labels = dict()
-for init_state, char, result_state in self.delta_function:
-    source_state = str(init_state).replace('[', '{').replace(']', '}').replace('\'','').replace('\"','')
-    destination_state = str(result_state).replace('[', '{').replace(']', '}').replace('\'','').replace('\"','')
-    G.add_edge(source_state, destination_state)
-    if (source_state, destination_state) in edge_labels:
-        edge_labels[source_state, destination_state] += ',' + char
-    else:
-        edge_labels[source_state, destination_state] = char
-
-pos = circular_layout(G)
-draw(G, pos, node_color = node_colors, edgecolors = 'k', width = 2.0, with_labels = True, node_size = node_sizes)
-draw_networkx_edge_labels(G, pos, edge_labels)
-plt.legend()
-```
-
-Prepares the graph of the fa using the networkx and matplotlip python library.
-
-## Results
-
-__Task 2__
-
-```
-Regular Grammar:
-    Vn = ['S', 'B', 'D', 'Q']
-    Vt = ['a', 'b', 'c', 'd']
-    P = 
-    ['S', 'aB']
-    ['S', 'bB']
-    ['B', 'cD']
-    ['D', 'dQ']
-    ['Q', 'bB']
-    ['D', 'a']
-    ['Q', 'dQ']
-
-Chomsky Type of Grammar is: (3, 'left')
-```
-
-__Task 3__
-
-```
-Finite Automaton:
-    Q = ['q0', 'q1', 'q2', 'q3', 'q4']
-    Sigma = ['a', 'b', 'c']
-    Delta = 
-    ['q0', 'a', 'q1']
-    ['q1', 'b', 'q2']
-    ['q2', 'c', 'q0']
-    ['q1', 'b', 'q3']
-    ['q3', 'a', 'q4']
-    ['q3', 'b', 'q0']
-    q0 = q0
-    F = q4
-
 Converted Finite Automaton to Regular Grammar:
     Vn = ['q0', 'q1', 'q2', 'q3']
     Vt = ['a', 'b', 'c']
@@ -388,18 +286,16 @@ Converted Non-Deterministic Finite Automaton to Deterministic Finite Automaton:
     F = q4
 ```
 
-This is the result of executing the main.py file
-
 ## Screenshots
 
 __Graphical Representation of NFA__
 
-![Graphical Representation of NFA](non_deterministic_fa.png "Graphical Representation of NFA")
+![Graphical Representation of NFA](images/non_deterministic_fa.png "Graphical Representation of NFA")
 
 __Graphical Representation of DFA__
 
-![Graphical Representation of DFA](deterministic_fa.png "Graphical Representation of DFA")
+![Graphical Representation of DFA](images/deterministic_fa.png "Graphical Representation of DFA")
 
 ## Conclusions
 
-In this laboratory work I implemented a chomsky type identifier from the grammar, a FA to grammar convertor, a determinism identifier for the FA, a NFA to DFA convertor and a way to represent finite automata graphically. The most difficulty I had is with the NFA to DFA convertor, the on paper way of doing it is way easier than the computer algorithm way. The python programming language is perfectly suitable for this task, as is very easy to work with strings and lists with it.
+In this laboratory work I implemented a chomsky type identifier from the grammar, a FA to grammar convertor, a determinism identifier for the FA, a NFA to DFA convertor and a way to represent finite automata graphically. The most difficulty I had is with the NFA to DFA convertor, the on paper way of doing it, it's easier than implementing a computer algorithm to do it. The python programming language is perfectly suitable for this task, as it is very easy to work with strings and lists.
